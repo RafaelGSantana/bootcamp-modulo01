@@ -25,21 +25,52 @@ server.get("/route/:id", (req, res) => {
 // Array de usuários
 const users = ["Rafael", "Gabriel", "Manoel"];
 
+// Middleware global - retorna no console o método requisitado (req.method) e a rota (req.url). Console time e timeEnd
+// obrigatóriamente com o mesmo nome (Request), calcula o tempo que a requisição, representada por next, demorou.
+server.use((req, res, next) => {
+  console.time("Request");
+  console.log(`Método ${req.method}; URL: ${req.url}`);
+
+  next(); // Representa a requisição (CRUD) feita.
+  console.timeEnd("Request");
+});
+
+// Middleware local - Retorna um erro caso não seja passado nenhum nome no req.body
+function checkUserExists(req, res, next) {
+  if (!req.body.name) {
+    return res.status(400).json({ error: "User name is required" });
+  }
+
+  return next();
+}
+
+// Middleware local - Verifica se o usuário informado no req.body existe.
+function checkUserInArray(req, res, next) {
+  const user = users[req.params.index];
+  if (!user) {
+    return res.status(400).json({ error: "User does not exists" });
+  }
+
+  req.user = user; // Toda rota que utiliza este middleware (checkUserInArray) terá acesso a req.user
+
+  return next();
+}
+
 // Listando todos os usuários
 server.get("/users", (req, res) => {
   return res.json(users);
 });
 
 // Lista um usuário (por posição no array)
-server.get("/users/:index", (req, res) => {
+server.get("/users/:index", checkUserInArray, (req, res) => {
   const { index } = req.params;
 
-  return res.json(users[index]);
+  return res.json(req.user);
 });
 
 // Request body = {"name": "Fulano", "email": "fulano@email.com"}
 // Criando usuário
-server.post("/users", (req, res) => {
+server.post("/users", checkUserExists, (req, res) => {
   const { name } = req.body;
 
   users.push(name);
@@ -48,7 +79,7 @@ server.post("/users", (req, res) => {
 });
 
 // Editção de usuário
-server.put("/users/:index", (req, res) => {
+server.put("/users/:index", checkUserExists, checkUserInArray, (req, res) => {
   const { index } = req.params;
   const { name } = req.body;
 
@@ -58,7 +89,7 @@ server.put("/users/:index", (req, res) => {
 });
 
 // Deletando usuário
-server.delete("/users/:index", (req, res) => {
+server.delete("/users/:index", checkUserInArray, (req, res) => {
   const { index } = req.params;
 
   // O método 'splice' vai percorrer o array até a posição informada e deleta a qtdade de posições a partir do index passado.
