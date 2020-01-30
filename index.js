@@ -17,4 +17,13 @@ server.get("/route/:id", (req, res) => {
   return res.json({ message: `Buscando id: ${id}, através de Route params` });
 });
 
+// Buscando usuário através da posição no array.
+const users = ["Rafael", "Gabriel", "Manoel"];
+
+server.get("/users/:index", (req, res) => {
+  const { index } = req.params;
+
+  return res.json(users[index]);
+});
+
 server.listen(3000);
